@@ -6,7 +6,7 @@ services:
     image: python-developer-lab:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     environment:
       APP_NAME: Python Developer Lab
       DATABASE_URL: sqlite:///./data/app.db
