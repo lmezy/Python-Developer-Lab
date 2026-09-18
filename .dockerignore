@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.pyright
+*.egg-info
+data/*.db
+data/*.db-*
+.env
+.DS_Store
