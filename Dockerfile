@@ -1,4 +1,6 @@
-FROM python:3.13-slim
+# Use the reachable mirror on the target host; override with --build-arg if needed.
+ARG PYTHON_IMAGE=docker.m.daocloud.io/library/python:3.13-slim
+FROM ${PYTHON_IMAGE}
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
