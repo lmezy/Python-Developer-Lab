@@ -3,7 +3,8 @@ from app.executor.runner import run_python
 
 
 def norm(value: str) -> str:
-    return value.replace("\r\n", "\n").rstrip()
+    # Ignore only the final line ending; spaces inside output remain significant.
+    return value.replace("\r\n", "\n").rstrip("\n")
 
 
 def judge(problem: Problem, code: str):
@@ -14,7 +15,12 @@ def judge(problem: Problem, code: str):
     last_err = ""
     terminal_status = None
     for i, case in enumerate(sorted(problem.test_cases, key=lambda x: x.sort_order), 1):
-        result = run_python(code, case.input_data)
+        execution_code = code
+        input_data = case.input_data
+        if problem.type == "FUNCTION":
+            execution_code = f"{code}\n{case.input_data}"
+            input_data = ""
+        result = run_python(execution_code, input_data)
         overall_ms += result.execution_ms
         last_out = result.stdout
         last_err = result.stderr

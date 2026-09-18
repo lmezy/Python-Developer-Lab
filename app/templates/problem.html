@@ -1,1 +1,78 @@
-{% extends 'base.html' %}{% block title %}{{ problem.code }} · {{ problem.title }}{% endblock %}{% block content %}<div class="problem-layout"><article class="problem-copy"><a href="/">← 返回路线</a><p class="eyebrow">{{ problem.code }} · {{ problem.type }} · 难度 {{ problem.difficulty }}/5</p><h1>{{ problem.title }}</h1><div class="markdown"><p>{{ problem.description }}</p><h3>输入</h3><p>{{ problem.input_spec or '无需输入' }}</p><h3>输出</h3><p>{{ problem.output_spec }}</p></div></article><section class="editor"><textarea id="code">{{ problem.starter_code }}</textarea><button class="button" onclick="submitCode()">运行测试 →</button><div id="result" class="result">提交代码后查看测试结果</div><div class="hint"><strong>需要提示？</strong><button onclick="getHint(1)">Hint-1</button><span id="hint"></span></div>{% if next_problem %}<a id="next-problem" class="button next-button" href="/problems/{{ next_problem.id }}" hidden>下一道题 →</a>{% endif %}</section></div><script>const pid={{problem.id}};async function submitCode(){const code=document.getElementById('code').value;const r=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({problem_id:pid,code})});const d=await r.json();const box=document.getElementById('result'); box.textContent=d.status+' '+d.passed+'/'+d.total+' tests\n'+((d.stderr||d.stdout)||''); box.className='result '+d.status;const next=document.getElementById('next-problem');if(next) next.hidden=d.status!=='PASSED'}async function getHint(level){const code=document.getElementById('code').value;const r=await fetch('/api/ai/hint',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({problem_id:pid,code,level})});document.getElementById('hint').textContent=(await r.json()).hint}</script>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ problem.code }} · {{ problem.title }}{% endblock %}
+{% block content %}
+<div class="problem-layout">
+  <article class="problem-copy">
+    <a href="/">← 返回路线</a>
+    <p class="eyebrow">{{ problem.code }} · {{ problem.type }} · 难度 {{ problem.difficulty }}/5</p>
+    <h1>{{ problem.title }}</h1>
+
+    <section class="spec-section">
+      <h2>题目要求</h2>
+      <p>{{ problem.description }}</p>
+    </section>
+    <section class="spec-section">
+      <h3>输入</h3>
+      <p>{{ problem.input_spec or '无需输入' }}</p>
+      <h3>输出</h3>
+      <p>{{ problem.output_spec }}</p>
+      <h3>约束与工具</h3>
+      <p class="preserve-lines">{{ problem.constraints or '请根据题目描述选择合适的 Python 工具。' }}</p>
+    </section>
+    <section class="spec-section knowledge-preview">
+      <h3>涉及知识点</h3>
+      <p>{{ problem.expected_concepts }}</p>
+    </section>
+  </article>
+
+  <section class="editor">
+    <p class="editor-label">在答案框中完成你的实现（这里只提供起始代码，不会直接显示参考答案）</p>
+    <textarea id="code">{{ problem.starter_code }}</textarea>
+    <button class="button" onclick="submitCode()">运行测试 →</button>
+    <div id="result" class="result">提交代码后查看程序运行结果</div>
+    <div class="hint"><strong>需要提示？</strong><button onclick="getHint(1)">Hint-1</button><span id="hint"></span></div>
+    {% if next_problem %}<a id="next-problem" class="button next-button" href="/problems/{{ next_problem.id }}" hidden>下一道题 →</a>{% endif %}
+
+    <section id="passed-feedback" class="passed-feedback" hidden>
+      <h2>✅ 通过验证</h2>
+      <p>你的程序已经实际运行，并通过全部测试。实现过程可以不同，只要程序行为符合题目要求即可。</p>
+      <h3>参考最优解</h3>
+      <pre id="reference-solution"></pre>
+      <h3>知识点讲解</h3>
+      <div id="knowledge-explanation"></div>
+    </section>
+  </section>
+</div>
+<script>
+const pid={{ problem.id }};
+async function submitCode(){
+  const code=document.getElementById('code').value;
+  const r=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({problem_id:pid,code})});
+  const d=await r.json();
+  const box=document.getElementById('result');
+  box.textContent=d.status+' '+d.passed+'/'+d.total+' tests\n'+((d.stderr||d.stdout)||'');
+  box.className='result '+d.status;
+  const next=document.getElementById('next-problem');
+  if(next) next.hidden=d.status!=='PASSED';
+  const feedback=document.getElementById('passed-feedback');
+  if(d.status==='PASSED'){
+    feedback.hidden=false;
+    document.getElementById('reference-solution').textContent=d.reference_solution||'暂无参考解';
+    const list=document.getElementById('knowledge-explanation');
+    list.replaceChildren();
+    (d.knowledge_explanation||[]).forEach(item=>{
+      const p=document.createElement('p');
+      p.textContent=item.name+'：'+item.description;
+      list.appendChild(p);
+    });
+  } else {
+    feedback.hidden=true;
+  }
+}
+async function getHint(level){
+  const code=document.getElementById('code').value;
+  const r=await fetch('/api/ai/hint',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({problem_id:pid,code,level})});
+  document.getElementById('hint').textContent=(await r.json()).hint;
+}
+</script>
+{% endblock %}

@@ -180,7 +180,18 @@ def submit(payload: SubmissionCreate, db: Session = Depends(get_db)):
                     prog.status = "learning"
     db.commit()
     db.refresh(s)
-    return {"submission_id": s.id, **result}
+    response = {"submission_id": s.id, **result}
+    if result["status"] == "PASSED":
+        concept_codes = [x.strip() for x in p.expected_concepts.split(",") if x.strip()]
+        knowledge = db.scalars(
+            select(KnowledgePoint).where(KnowledgePoint.code.in_(concept_codes))
+        ).all()
+        response["reference_solution"] = p.solution_code
+        response["knowledge_explanation"] = [
+            {"name": point.name, "description": point.description}
+            for point in knowledge
+        ]
+    return response
 
 
 @app.get("/api/submissions/{submission_id}")
