@@ -260,4 +260,14 @@ def problem_page(problem_id: int, request: Request, db: Session = Depends(get_db
     p = db.get(Problem, problem_id)
     if not p:
         raise HTTPException(404)
-    return templates.TemplateResponse(request=request, name="problem.html", context={"problem": p})
+    next_problem = db.scalar(
+        select(Problem)
+        .where(Problem.is_active, Problem.sort_order > p.sort_order)
+        .order_by(Problem.sort_order)
+        .limit(1)
+    )
+    return templates.TemplateResponse(
+        request=request,
+        name="problem.html",
+        context={"problem": p, "next_problem": next_problem},
+    )
