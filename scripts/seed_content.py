@@ -52,7 +52,7 @@ PROBLEMS = [
         "description": "读取一个整数温度，根据温度输出状态：温度大于等于 30 时输出 hot，否则输出 cool。",
         "input_spec": "输入一行整数 temperature，范围为 -100 到 100。",
         "output_spec": "只输出一行：满足 temperature >= 30 时输出 hot，否则输出 cool。",
-        "constraints": "可能用到的工具：input()、int()、if/else。\n边界要求：temperature 等于 30 时必须输出 hot。",
+        "constraints": "可能用到的工具：input()、int()、if/else。\n输入保证在 -100 到 100（含边界）之间；temperature 等于 -100 或 29 时输出 cool，等于 30 或 100 时输出 hot。",
         "starter": "temperature = int(input())\n# 根据题目要求输出 hot 或 cool\n",
         "solution": "temperature = int(input())\nif temperature >= 30:\n    print('hot')\nelse:\n    print('cool')",
         "expected": "hot\n", "concepts": "if/elif/else",
@@ -140,11 +140,43 @@ def seed() -> None:
             db.flush()
 
         for order, item in enumerate(PROBLEMS, 1):
-            cases = [("30", "hot\n"), ("29", "cool\n")] if order == 3 else [("5", "15\n"), ("1", "1\n")] if order == 4 else [("1 2 3 4", "2 4\n"), ("1 3 5", "\n")] if order == 8 else [("1 2 3", item["expected"]) ]
+            cases = [("1 2 3", item["expected"])]
             if order == 1:
                 cases = [("", item["expected"])]
-            if order == 6:
-                cases = [("print(repr(safe_divide(6, 3)))", "2.0\n"), ("print(repr(safe_divide(6, 0)))", "None\n")]
+            elif order == 3:
+                cases = [
+                    ("-100", "cool\n"),
+                    ("29", "cool\n"),
+                    ("30", "hot\n"),
+                    ("100", "hot\n"),
+                ]
+            elif order == 4:
+                cases = [("1", "1\n"), ("5", "15\n"), ("10000", "50005000\n")]
+            elif order == 5:
+                cases = [
+                    ("0", "0.00\n"),
+                    ("-5 0 5", "0.00\n"),
+                    ("  1   2  3  ", "2.00\n"),
+                ]
+            elif order == 6:
+                cases = [
+                    ("print(repr(safe_divide(0, 0)))", "None\n"),
+                    ("print(repr(safe_divide(6, 0)))", "None\n"),
+                    ("print(repr(safe_divide(6, 3)))", "2.0\n"),
+                    ("print(repr(safe_divide(-6, 2)))", "-3.0\n"),
+                ]
+            elif order == 7:
+                cases = [
+                    ("\n", "0\n"),
+                    ("  Python   is\tfun  ", "3\n"),
+                    ("one", "1\n"),
+                ]
+            elif order == 8:
+                cases = [
+                    ("-100 0 3 100", "-100 0 100\n"),
+                    ("1 3 5", "\n"),
+                    ("2 4", "2 4\n"),
+                ]
             _validate_reference(item["solution"], cases, item.get("type", "BASIC"))
             problem = db.query(Problem).filter_by(code=item["code"]).first()
             if not problem:
@@ -165,10 +197,26 @@ def seed() -> None:
             db.query(TestCase).filter_by(problem_id=problem.id).delete()
             for sort_order, (input_data, expected) in enumerate(cases):
                 db.add(TestCase(problem_id=problem.id, input_data=input_data, expected_stdout=expected, expected_exit_code=0, is_hidden=sort_order > 0, sort_order=sort_order))
+            explanations = {
+                "输出与 print": "使用 print() 将文本或计算结果输出到标准输出。",
+                "变量": "变量用于保存数据，并可以在程序后续步骤中读取或修改。",
+                "字符串": "字符串是由字符组成的文本，可以使用引号创建并进行拼接或格式化。",
+                "if/elif/else": "条件语句根据表达式的真假选择不同的执行分支。",
+                "for循环": "for 循环按顺序遍历一组数据，重复执行循环体。",
+                "累加器": "累加器通过循环逐步保存累计结果，常用于求和或计数。",
+                "列表": "列表用于按顺序保存多个值，可以遍历、取长度并进行处理。",
+                "函数": "函数将可复用的处理逻辑封装起来，通过参数输入并用 return 返回结果。",
+                "异常处理": "异常处理用于识别和处理运行过程中可能出现的特殊情况。",
+                "列表推导": "列表推导可以用简洁的表达式遍历数据并筛选或生成列表内容。",
+                "条件": "条件表达式用于判断数据是否满足某个要求。",
+            }
             for concept in [x.strip() for x in item["concepts"].split(",") if x.strip()]:
                 kp = db.query(KnowledgePoint).filter_by(code=concept).first()
+                description = explanations.get(concept, f"{concept}是本题需要掌握的基础知识。")
                 if not kp:
-                    db.add(KnowledgePoint(code=concept, name=concept, category="基础", description=f"{item['title']}相关知识点"))
+                    kp = KnowledgePoint(code=concept, name=concept, category="基础")
+                    db.add(kp)
+                kp.description = description
         db.commit()
         print("Seeded or updated", len(PROBLEMS), "problems")
     finally:
